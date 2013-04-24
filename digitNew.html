@@ -1,0 +1,185 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Handwriting Recogniser</title>
+
+
+	<script type="text/javascript">
+		/////DEBUG
+		var d;	
+		/////
+	
+	
+	window.onload = function(){
+
+
+		/*Main Canvas*/
+		var canvas = document.getElementById('canvas');
+		var ctx = canvas.getContext('2d');
+
+		/*scaled down*/
+		var cs = document.getElementById('small');
+		var ctxs = cs.getContext('2d');
+		
+		
+		var recognize = document.getElementById('recognize');
+		
+		var state= 0;	//true if mousedown
+		
+		/*Drawing settings*/
+		ctx.lineWidth = 30;
+		ctx.lineCap = 'round';
+
+		/*Draws a line from (xP,yP) to (x,y)*/
+		function draw(xP, yP,x, y, ctx){
+			ctx.beginPath();
+			ctx.moveTo(xP, yP)
+			ctx.lineTo(x,y);
+			ctx.stroke();
+		}
+		
+		//Get coordinates relative to the canvas
+		function getCursor(e){
+			var mouse = []; //might change to object
+			if(e.pageX || e.pageY){
+				mouse[0] = e.pageX;
+				mouse[1] = e.pageY;
+			}
+			else{
+				mouse[0] = e.clientX + document.body.scrollLeft+ document.documentElement.scrollLeft;
+				mouse[1] = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+			}
+
+			mouse[0] -= canvas.offsetLeft;
+			mouse[1] -= canvas.offsetTop;
+			return mouse;
+		}
+		
+
+		canvas.addEventListener('mousedown', function(e){
+			state = 1;
+			var mouse= getCursor(e);
+			var xP = mouse[0];
+			var yP = mouse[1];
+			canvas.onmousemove = function(e){
+				if(state != 0)
+				{
+					var mouse = getCursor(e);
+					var x = mouse[0];
+					var y = mouse[1];
+					//console.log(x,y);
+
+					draw(xP, yP,x,y, ctx);
+					//draw(xP, yP, x,y, ctxs);
+
+					xP = x;
+					yP = y;
+				}
+			}
+			
+		});
+
+		canvas.addEventListener('mouseup', function(){
+			state = 0;
+		});
+
+		
+		recognize.addEventListener('click', function(){
+			//this is where the magic happens!
+		//	var canvasSmall = document.createElement('canvas');
+		//	var ctxSmall = canvasSmall.getContext('2d');
+			//ctx.scale(0.05,0.05);
+			var imageData = ctx.getImageData(0,0,400,400);
+			//ctxs.scale(400,400);
+			//var imageData = ctx.getImageData(0,0,400,400);
+		//	ctxSmall.putImageData(imageData,20,20);
+		//	console.log(imageData);
+		//	ctxs.putImageData(imageData, 0 , 0);
+			//DEBUG
+			d = imageData;
+			
+			var newCanvas = document.createElement('canvas');
+			newCanvas.width = 400;
+			newCanvas.height = 400;
+			newCanvas.getContext('2d').putImageData(imageData, 0, 0);
+			ctxs.scale(0.05,0.05);
+			ctxs.drawImage(newCanvas, 0, 0);
+
+			imageData = ctxs.getImageData(0,0,20,20);
+			window.ID = imageData;
+			var X=[];
+			var xi=0;
+			for(var i=3; i<(4*20*20); i+=4){
+
+				X[xi] = imageData.data[i]/255;
+
+				xi++;
+			}
+			//X[0] =0;
+			window.XG = X;
+			//window.X = X;
+		//	ctxs.scale(20,20);
+			//cos
+
+			//ctxs.putImageData(imageData,0,0);
+			
+			//var ans = feedForward(X);
+			//console.log(ans);
+
+		});
+
+	}
+			
+
+	</script>
+	<style>
+
+		body{
+			background: #666;
+			text-align: center;
+			font-family: Tahoma, Verdana;
+		}
+		#canvas{
+			display: block;
+			margin: 20px auto;
+			text-align: center;
+			box-shadow: 0 0 28px #333;
+			background: #fff;
+			width: 400px;
+			border-radius: 14px;
+		}
+		h2{
+			color: #dddd22;
+		}
+		#main{
+			padding: 40px 0;
+		}
+		#recognize{
+			margin: 8px auto;
+			padding: 8px;
+			font-size: 19px;
+		}
+		#small{
+			display: block;
+			//margin: 50px;
+			border: 1px solid;
+			background: #fff;
+		}
+	</style>
+
+</head>
+<body>
+	<div id="main">
+		<h2>Go on! Draw a number :D</h2>	
+		<canvas id="canvas" width = "400px" height= "400px">
+			Your browser doesnt support canvas :(
+		</canvas>
+		<canvas id="small" width= "20px" height="20px">
+		</canvas>
+		<button id="recognize">
+			Recognise!
+		</button>
+	</div>
+</body>
+</html>

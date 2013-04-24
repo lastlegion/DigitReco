@@ -3,23 +3,60 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Handwriting Recogniser</title>
+	<script type="text/javascript" src="params.js"></script>
+    <script type="text/javascript" src="sylvester/lib/sylvester-min.js"></script> 
+	<script type="text/javascript" src="thumb.js"></script>
+	<script type="text/javascript">
+		temp1 = [];
+	//	temp1[0][0] = t1[0];
+		for(var i=0; i<25; i++)
+		{
+			temp1[i] = [];
+			for(var j=0; j<401; j++)
+			{
+				temp1[i][j] = t1[(i*400)+j];
+			}
+		}
+	//	console.log(temp1);
+
+		temp2 = [];
+		for(var i=0; i<10; i++){
+			temp2[i] = [];
+			for(var j=0; j<26; j++){
+				temp2[i][j]= t2[(i*25)+j];
+			}
+		}
+		
+
+		var T1 = $M(temp1);
+		var T2 = $M(temp2);
+	</script>
+
 	<script type="text/javascript">
 		/////DEBUG
 		var d;	
 		/////
-
+	
 	
 	window.onload = function(){
 
 		var canvas = document.getElementById('canvas');
 		var ctx = canvas.getContext('2d');
-		
+
+		//lala
+		var cs = document.getElementById('small');
+		var ctxs = cs.getContext('2d');
 		var recognize = document.getElementById('recognize');
 		
 		var state= 0;
-		ctx.lineWidth = 12;
-		ctx.lineCap = 'round'
-		function draw(xP, yP,x, y){
+		ctx.lineWidth = 30;
+		ctx.lineCap = 'round';
+
+
+
+
+
+		function draw(xP, yP,x, y, ctx){
 			
 			ctx.beginPath();
 			ctx.moveTo(xP, yP)
@@ -59,7 +96,9 @@
 					var x = mouse[0];
 					var y = mouse[1];
 					//console.log(x,y);
-					draw(xP, yP,x,y);
+
+					draw(xP, yP,x,y, ctx);
+					//draw(xP, yP, x,y, ctxs);
 
 					xP = x;
 					yP = y;
@@ -73,34 +112,88 @@
 			state = 0;
 		});
 
+		function feedForward(X){
+		
+			//add bais
+			//X = 400X1
+			
+			//add bias
+			var tX = X.slice(0);
+			tX.unshift(1);
+			xMat = $M(tX);
+			function sigmoid(a){
+				return (1/(1+Math.exp(-1*(a))));
+			}
+			console.log(T1.rows() + " "+T1.cols());
+			//window.t = xMat.transpose();
+			//window.yes = T1.canMultiplyFromLeft((xMat));
+			//window.tm = T1.multiply((xMat));
+			tm = T1.multiply(xMat);
+			A2 = tm.map(sigmoid); //a2 = sigmiod(theta1*a1'''')
+			//console.log(A2);
+			
+			//Add bais
+			var o = Matrix.Zero(1,1).map(function(x){return x+1;});
+			A2 = A2.transpose();
+			A2 = o.augment(A2);
+			window.a2 = A2;
+
+			window.tm = T2.multiply((A2.transpose()));
+			A3 = tm.map(sigmoid);
+			window.tm = A3;
+			var m = -9999999999999;
+			var mi;
+			for(var i=0; i<tm.rows(); i++){if(tm.elements[i] > m){m = tm.elements[i]; mi = i;}}
+
+			
+			console.log(A2);
+			//theta1
+			return mi;
+		}
+
 		recognize.addEventListener('click', function(){
 		
 			//this is where the magic happens!
-			var canvasSmall = document.createElement('canvas');
-			var ctxSmall = canvasSmall.getContext('2d');
-			ctx.scale(0.05,0.05);
-			var imageData = ctx.getImageData(0,0,20,20)
-		
+		//	var canvasSmall = document.createElement('canvas');
+		//	var ctxSmall = canvasSmall.getContext('2d');
+			//ctx.scale(0.05,0.05);
+			var imageData = ctx.getImageData(0,0,400,400);
+			//ctxs.scale(400,400);
 			//var imageData = ctx.getImageData(0,0,400,400);
-			ctxSmall.putImageData(imageData,20,20);
-			console.log(imageData);
-			
-			
+		//	ctxSmall.putImageData(imageData,20,20);
+		//	console.log(imageData);
+		//	ctxs.putImageData(imageData, 0 , 0);
 			//DEBUG
 			d = imageData;
 			
+			var newCanvas = document.createElement('canvas');
+			newCanvas.width = 400;
+			newCanvas.height = 400;
+			newCanvas.getContext('2d').putImageData(imageData, 0, 0);
+			ctxs.scale(0.05,0.05);
+			ctxs.drawImage(newCanvas, 0, 0);
+
+			imageData = ctxs.getImageData(0,0,20,20);
+			window.ID = imageData;
 			var X=[];
 			var xi=0;
 			for(var i=3; i<(4*20*20); i+=4){
-				if(imageData.data[i] ==255)
-					X[xi]= 1;
-				else
-					X[xi] = 0;
+
+				X[xi] = imageData.data[i]/255;
+
 				xi++;
 			}
-			window.X = X;
-			ctx.scale(20,20);
+			//X[0] =0;
+			window.XG = X;
+			//window.X = X;
+		//	ctxs.scale(20,20);
 			//cos
+
+			//ctxs.putImageData(imageData,0,0);
+			
+			var ans = feedForward(X);
+			console.log(ans);
+
 		});
 
 	}
@@ -134,6 +227,12 @@
 			padding: 8px;
 			font-size: 19px;
 		}
+		#small{
+			display: block;
+			//margin: 50px;
+			border: 20px solid;
+			background: #fff;
+		}
 	</style>
 
 </head>
@@ -142,6 +241,8 @@
 		<h2>Go on! Draw a number :D</h2>	
 		<canvas id="canvas" width = "400px" height= "400px">
 			Your browser doesnt support canvas :(
+		</canvas>
+		<canvas id="small" width= "400px" height="400px">
 		</canvas>
 		<button id="recognize">
 			Recognise!
